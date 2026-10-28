@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="서양 별자리·동양 띠와 사주·타로를 합친 오늘의 운세">
+<meta name="theme-color" content="#7fb8e6">
+<meta name="apple-mobile-web-app-title" content="오늘, 운">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%99%3C/text%3E%3C/svg%3E"><title>오늘, 운(運)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap">
+<style>
+  /* 레이아웃: 낮 하늘 그라데이션 위에 반투명 카드가 한 줄로 쌓이는 단일(밝은) 테마. 입력 카드 ↔ 결과(사람 목록 + 탭 3개) */
+  :root {
+    --ink: #2a3550;        /* 본문 글씨 */
+    --ink-2: #4a5878;      /* 보조 글씨 */
+    --muted: #6f7c9c;      /* 흐린 글씨 */
+    --gold: #a3660f;       /* 제목 금색 */
+    --amber: #e8a13c;      /* 버튼·강조 */
+    --amber-hi: #f5c76a;
+    --violet: #6a5acd;     /* 별자리 보라 */
+    --card: rgba(255,255,255,.78);
+    --line: rgba(120,140,190,.30);
+    --good: #2e7d4f; --bad: #b8433c;
+    --f-display: "Gowun Batang", "Nanum Myeongjo", "Batang", serif;
+    --f-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  [hidden], .hidden { display: none !important; }
+  body {
+    margin: 0; min-height: 100%; color: var(--ink);
+    font-family: var(--f-body); font-size: 15px; line-height: 1.6;
+    background: linear-gradient(180deg, #7fb8e6 0%, #a8d4f2 26%, #c9e6fa 50%, #e7f5ff 76%, #fdfeff 100%) fixed, #e7f5ff;
+  }
+  #stars { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  #stars span {
+    position: absolute; background: #fff; border-radius: 50%;
+    box-shadow: 0 0 6px 1px rgba(255,255,255,.85);
+    animation: twinkle linear infinite;
+  }
+  @keyframes twinkle { 0%,100% { opacity:.06; } 50% { opacity:.5; } }
+  @keyframes starPulse { 0%,100% { opacity:.3; } 50% { opacity:1; } }
+  .tw { animation: starPulse 2.8s ease-in-out infinite; }
+
+  .wrap {
+    max-width: 760px; margin: 0 auto; position: relative; z-index: 1;
+    padding-block: 24px 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  header { text-align: center; }
+  h1 {
+    margin: 0; font-family: var(--f-display); font-weight: 700;
+    font-size: clamp(26px, 6.5vw, 34px); letter-spacing: 1px;
+    background: linear-gradient(120deg, #2f5bb7, var(--violet), #c77b2e);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .date-line { margin-top: 6px; color: var(--ink-2); font-size: 14px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+
+  .hero { max-width: 600px; margin: 0 auto; text-align: center; }
+  .hero svg { width: 100%; height: auto; display: block; }
+  .hero-cap { font-size: 13px; color: var(--muted); margin-top: -4px; }
+
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12.5px;
+    border: 1px solid rgba(170,120,40,.45); color: #8a5a0c; background: rgba(255,253,245,.7);
+  }
+  .badge.bad { border-color: rgba(190,80,70,.55); color: var(--bad); }
+  .badge.good { border-color: rgba(70,150,100,.55); color: var(--good); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 18px; padding: 20px; margin-top: 16px; backdrop-filter: blur(6px);
+    box-shadow: 0 10px 26px rgba(90,120,180,.12);
+  }
+  .card h2 { margin: 0 0 12px; font-family: var(--f-display); font-size: 19px; color: var(--gold); text-wrap: balance; }
+
+  label { display: block; font-size: 13px; color: var(--ink-2); margin: 12px 0 4px; }
+  input, select {
+    width: 100%; padding: 11px 13px; border-radius: 12px; font-size: 16px;
+    border: 1px solid rgba(120,140,190,.38); background: rgba(255,255,255,.9); color: var(--ink);
+    font-family: inherit;
+  }
+  input::placeholder { color: #98a4c0; }
+  input:focus, select:focus { outline: 2px solid var(--amber); outline-offset: 1px; border-color: transparent; }
+  input:disabled { opacity: .45; }
+  input[aria-invalid="true"] { border-color: var(--bad); }
+  .row2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px; }
+  .row2 > * { min-width: 0; }
+  .chk { display: flex; align-items: center; font-size: 14px; color: var(--ink-2); cursor: pointer; margin-top: 14px; }
+  .chk input { width: auto; margin: 0 8px 0 0; accent-color: var(--amber); transform: scale(1.2); }
+  .hint-line { font-size: 12.5px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+  .form-err { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(184,67,60,.08); color: var(--bad); font-size: 14px; }
+
+  button { font-family: inherit; cursor: pointer; }
+  button:focus-visible, .tab:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+  button.main {
+    width: 100%; margin-top: 16px; padding: 13px; font-size: 16px; font-weight: 700;
+    border: none; border-radius: 12px; color: #3a2c05;
+    background: linear-gradient(135deg, var(--amber-hi), var(--amber));
+  }
+  button.main:hover { filter: brightness(1.06); }
+  .btn-sub {
+    background: rgba(255,255,255,.7); border: 1px solid var(--line); color: var(--ink-2);
+    border-radius: 999px; padding: 7px 14px; font-size: 13.5px;
+  }
+  .btn-sub:hover { border-color: var(--amber); }
+  .btn-sub.danger { color: var(--bad); border-color: rgba(184,67,60,.4); }
+  .form-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-top: 12px; }
+  .confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13.5px; color: var(--ink-2); }
+
+  /* 사람 목록 */
+  .people { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .person {
+    border: 1px solid var(--line); background: rgba(255,255,255,.6); color: var(--ink-2);
+    border-radius: 999px; padding: 6px 14px; font-size: 14px;
+  }
+  .person[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .person.add { border-style: dashed; color: var(--muted); }
+
+  .greet { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .greet > div { min-width: 0; }
+  .greet .who { font-family: var(--f-display); font-size: 19px; font-weight: 700; }
+  .chips { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .greet-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .copy-box { width: 100%; margin-top: 12px; min-height: 160px; font: 13px/1.6 var(--f-body); padding: 10px; border-radius: 10px; border: 1px solid var(--line); color: var(--ink); background: #fff; resize: vertical; }
+
+  .tabs { display: flex; gap: 8px; margin-top: 16px; }
+  .tab {
+    flex: 1; padding: 11px 4px; text-align: center; border-radius: 999px;
+    border: 1px solid var(--line); background: rgba(255,255,255,.55);
+    color: var(--ink-2); font-size: 14.5px;
+  }
+  .tab[aria-selected="true"] {
+    background: linear-gradient(135deg, var(--amber-hi), var(--amber)); color: #221a05; font-weight: 700; border-color: transparent;
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .sign-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .sign-head > div:last-child { min-width: 0; }
+  .sign-head h2 { margin-bottom: 2px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .sign-sym {
+    font-size: 36px; width: 64px; height: 64px; flex: none; display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; border: 1px solid rgba(130,120,210,.35); background: rgba(130,120,220,.10);
+  }
+  .scores { margin-top: 14px; }
+  .row { margin: 12px 0; }
+  .row .lbl { display: flex; justify-content: space-between; font-size: 14px; color: #3f4e73; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
+  .bar { height: 10px; border-radius: 99px; background: rgba(100,130,190,.18); overflow: hidden; }
+  .fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #8f7ff0, #e0a63f); transition: width .9s ease; }
+  .quote {
+    margin-top: 12px; padding: 12px 14px; border-left: 3px solid #e0a63f;
+    background: rgba(255,248,232,.8); border-radius: 0 12px 12px 0; font-size: 14.5px; line-height: 1.7;
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; margin-top: 14px; }
+  .cell { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px; background: rgba(255,255,255,.65); font-size: 13px; min-width: 0; }
+  .cell .k { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .cell .v { font-size: 14.5px; font-weight: 700; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .swatch { width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(90,110,160,.4); display: inline-block; }
+  .el-badge { font-weight: 700; padding: 1px 8px; border-radius: 8px; color: #10121f; }
+  .meta-line { margin: 8px 0 2px; font-size: 13.5px; color: #3f4e73; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+
+  .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .pillar { border: 1px solid rgba(170,120,40,.30); border-radius: 12px; padding: 10px 4px; text-align: center; background: rgba(255,247,230,.75); min-width: 0; }
+  .pillar .pk { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .pillar .pv { font-family: var(--f-display); font-size: 20px; font-weight: 700; color: var(--gold); }
+  .pillar .ph { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+  .elrow { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .elchip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; border: 1px solid var(--line); background: rgba(255,255,255,.65); }
+
+  /* 타로 */
+  .tstage { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .flip { width: 170px; height: 276px; perspective: 900px; flex: none; background: none; border: 0; padding: 0; border-radius: 14px; }
+  .flip-inner { transition: transform .8s; transform-style: preserve-3d; position: relative; width: 100%; height: 100%; }
+  .flipped .flip-inner { transform: rotateY(180deg); }
+  .face {
+    position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 14px;
+  }
+  .face.front {
+    background: repeating-linear-gradient(45deg, rgba(245,199,106,.14) 0 8px, transparent 8px 16px), linear-gradient(160deg, #43356f, #221d4a);
+    border: 1px solid rgba(245,199,106,.55); box-shadow: 0 10px 22px rgba(70,90,160,.25);
+  }
+  .face.front .star { font-size: 34px; color: var(--amber-hi); }
+  .face.front .pick { margin-top: 10px; font-size: 13px; color: #e6d9a8; }
+  .face.back { transform: rotateY(180deg); background: linear-gradient(160deg, #3b2f63, #1d1a3a); border: 1px solid rgba(245,199,106,.55); }
+  .face.back .num { color: var(--amber-hi); font-size: 12px; letter-spacing: 2px; }
+  .face.back .sym { font-size: 44px; margin: 10px 0; }
+  .face.back .tname { font-family: var(--f-display); font-size: 19px; font-weight: 700; color: #f0edff; }
+  .face.back .ten { color: #b9b4d6; font-size: 12px; margin-top: 4px; }
+  .ttext { flex: 1; min-width: 220px; }
+  .ttext .pos { color: var(--gold); font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+  .ttext .desc { line-height: 1.75; font-size: 15px; }
+  .ttext .hint { margin-top: 10px; color: var(--muted); font-size: 13px; }
+
+  footer { margin-top: 26px; text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 16px);
+    background: var(--ink); color: #fff; padding: 8px 18px; border-radius: 999px; font-size: 14px;
+    opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 20;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 560px) {
+    .tstage { justify-content: center; }
+    .tab { font-size: 13.5px; }
+    .card { padding: 18px 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="stars" aria-hidden="true"></div>
+<main class="wrap">
+  <header>
+    <h1>🌙 오늘, 운(運)</h1>
+    <div class="date-line" id="dateLine"></div>
+  </header>
+
+  <!-- 히어로 일러스트: 두 손바닥 위로 펼쳐지는 우주의 별자리 -->
+  <div class="hero">
+    <svg viewBox="0 0 800 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="점술가가 두 손바닥을 펼치고 손 위로 우주의 별자리가 펼쳐지는 일러스트">
+      <defs>
+        <radialGradient id="hgGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity=".95"/>
+          <stop offset="55%" stop-color="#dfe6ff" stop-opacity=".5"/>
+          <stop offset="100%" stop-color="#dfe6ff" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="hgRobe" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#4a3f96"/>
+          <stop offset="100%" stop-color="#2b2464"/>
+        </linearGradient>
+        <linearGradient id="hgSwirl" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#8f7ff0" stop-opacity="0"/>
+          <stop offset="50%" stop-color="#7a6fd0" stop-opacity=".5"/>
+          <stop offset="100%" stop-color="#e0a63f" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="hgSoft" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="9"/>
+        </filter>
+        <mask id="hgCres">
+          <rect x="60" y="20" width="120" height="130" fill="#fff"/>
+          <circle cx="136" cy="66" r="30" fill="#000"/>
+        </mask>
+      </defs>
+      <path d="M55,245 C190,120 610,118 745,255" stroke="url(#hgSwirl)" stroke-width="46" fill="none" stroke-linecap="round" filter="url(#hgSoft)" opacity=".65"/>
+      <path d="M115,258 C255,152 555,150 695,262" stroke="url(#hgSwirl)" stroke-width="20" fill="none" stroke-linecap="round" filter="url(#hgSoft)" opacity=".8"/>
+      <ellipse cx="400" cy="185" rx="235" ry="115" fill="url(#hgGlow)" opacity=".85"/>
+      <circle cx="108" cy="82" r="34" fill="url(#hgGlow)" opacity=".7"/>
+      <circle cx="112" cy="82" r="30" fill="#f2c14e" mask="url(#hgCres)"/>
+      <circle cx="702" cy="92" r="22" fill="url(#hgGlow)" opacity=".8"/>
+      <circle cx="702" cy="92" r="11" fill="#f5c76a"/>
+      <ellipse cx="702" cy="92" rx="20" ry="6" fill="none" stroke="#b98a2e" stroke-width="1.6" transform="rotate(-18 702 92)" opacity=".8"/>
+      <g stroke="#7a6fd0" stroke-width="1.3" opacity=".85">
+        <line x1="115" y1="196" x2="148" y2="168"/><line x1="148" y1="168" x2="184" y2="160"/>
+        <line x1="184" y1="160" x2="214" y2="174"/><line x1="214" y1="174" x2="248" y2="166"/>
+        <line x1="248" y1="166" x2="270" y2="140"/><line x1="270" y1="140" x2="302" y2="130"/>
+      </g>
+      <g fill="#4a3f96">
+        <circle cx="115" cy="196" r="3"/><circle cx="148" cy="168" r="2.6"/><circle cx="184" cy="160" r="3.2"/>
+        <circle cx="214" cy="174" r="2.6"/><circle cx="248" cy="166" r="3"/><circle cx="270" cy="140" r="2.4"/>
+        <circle cx="302" cy="130" r="2.8"/>
+      </g>
+      <g stroke="#7a6fd0" stroke-width="1.3" opacity=".85">
+        <line x1="362" y1="146" x2="398" y2="118"/><line x1="398" y1="118" x2="434" y2="110"/>
+        <line x1="434" y1="110" x2="460" y2="134"/><line x1="398" y1="118" x2="402" y2="152"/>
+        <line x1="380" y1="162" x2="424" y2="148"/>
+      </g>
+      <g fill="#4a3f96">
+        <circle cx="362" cy="146" r="2.8"/><circle cx="398" cy="118" r="3.2" class="tw"/>
+        <circle cx="434" cy="110" r="2.6"/><circle cx="460" cy="134" r="2.8"/>
+        <circle cx="380" cy="162" r="2.4"/><circle cx="424" cy="148" r="2.4"/>
+      </g>
+      <g stroke="#7a6fd0" stroke-width="1.3" opacity=".85">
+        <line x1="585" y1="168" x2="615" y2="142"/><line x1="615" y1="142" x2="645" y2="160"/>
+        <line x1="645" y1="160" x2="675" y2="134"/><line x1="675" y1="134" x2="705" y2="152"/>
+      </g>
+      <g fill="#4a3f96">
+        <circle cx="585" cy="168" r="2.8"/><circle cx="615" cy="142" r="2.6"/><circle cx="645" cy="160" r="3"/>
+        <circle cx="675" cy="134" r="2.6"/><circle cx="705" cy="152" r="2.8"/>
+      </g>
+      <g fill="#ffffff">
+        <path class="tw" d="M0,-9 L2.2,-2.2 L9,0 L2.2,2.2 L0,9 L-2.2,2.2 L-9,0 L-2.2,-2.2 Z" transform="translate(320,88)"/>
+        <path class="tw" d="M0,-7 L1.8,-1.8 L7,0 L1.8,1.8 L0,7 L-1.8,1.8 L-7,0 L-1.8,-1.8 Z" transform="translate(505,72)" style="animation-delay:.9s"/>
+        <path class="tw" d="M0,-8 L2,-2 L8,0 L2,2 L0,8 L-2,2 L-8,0 L-2,-2 Z" transform="translate(222,84)" style="animation-delay:1.6s"/>
+        <path class="tw" d="M0,-6 L1.6,-1.6 L6,0 L1.6,1.6 L0,6 L-1.6,1.6 L-6,0 L-1.6,-1.6 Z" transform="translate(556,196)" style="animation-delay:.5s"/>
+        <circle cx="180" cy="120" r="1.6"/><circle cx="272" cy="98" r="1.4"/><circle cx="352" cy="66" r="1.7"/>
+        <circle cx="452" cy="62" r="1.4"/><circle cx="540" cy="108" r="1.6"/><circle cx="652" cy="70" r="1.5"/>
+        <circle cx="742" cy="150" r="1.5"/><circle cx="90" cy="150" r="1.5"/><circle cx="132" cy="240" r="1.4"/>
+      </g>
+      <path d="M242,278 C282,236 336,208 396,192" stroke="#e0a63f" stroke-width="2" fill="none" opacity=".4" stroke-dasharray="1 8" stroke-linecap="round"/>
+      <path d="M558,278 C518,236 464,208 404,192" stroke="#e0a63f" stroke-width="2" fill="none" opacity=".4" stroke-dasharray="1 8" stroke-linecap="round"/>
+      <ellipse cx="400" cy="426" rx="150" ry="12" fill="#2b2464" opacity=".14"/>
+      <ellipse cx="240" cy="290" rx="40" ry="30" fill="url(#hgGlow)" opacity=".8"/>
+      <ellipse cx="560" cy="290" rx="40" ry="30" fill="url(#hgGlow)" opacity=".8"/>
+      <path d="M310,430 C312,372 336,342 372,326 L428,326 C464,342 488,372 490,430 Z" fill="url(#hgRobe)"/>
+      <path d="M372,330 C330,322 288,314 252,304" stroke="url(#hgRobe)" stroke-width="17" fill="none" stroke-linecap="round"/>
+      <path d="M428,330 C470,322 512,314 548,304" stroke="url(#hgRobe)" stroke-width="17" fill="none" stroke-linecap="round"/>
+      <g transform="translate(240,298) rotate(-24)">
+        <ellipse cx="0" cy="6" rx="17" ry="12" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.5" stroke-opacity=".5"/>
+        <rect x="-13.5" y="-17" width="6.5" height="24" rx="3.2" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+        <rect x="-5.8" y="-21" width="7" height="28" rx="3.5" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+        <rect x="2.4" y="-20" width="7" height="27" rx="3.5" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+        <rect x="10.4" y="-15" width="6.5" height="22" rx="3.2" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+        <ellipse cx="18" cy="3" rx="9.5" ry="5.5" transform="rotate(-38 18 3)" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+      </g>
+      <g transform="translate(560,298) rotate(24)">
+        <ellipse cx="0" cy="6" rx="17" ry="12" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.5" stroke-opacity=".5"/>
+        <rect x="-13.5" y="-17" width="6.5" height="24" rx="3.2" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+        <rect x="-5.8" y="-21" width="7" height="28" rx="3.5" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+        <rect x="2.4" y="-20" width="7" height="27" rx="3.5" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+        <rect x="10.4" y="-15" width="6.5" height="22" rx="3.2" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+        <ellipse cx="-18" cy="3" rx="9.5" ry="5.5" transform="rotate(38 -18 3)" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.3" stroke-opacity=".45"/>
+      </g>
+      <path d="M400,204 C370,204 352,230 356,262 C360,292 378,310 400,312 C422,310 440,292 444,262 C448,230 430,204 400,204 Z" fill="url(#hgRobe)" stroke="#f2c14e" stroke-width="1.4" stroke-opacity=".45"/>
+      <ellipse cx="400" cy="278" rx="25" ry="27" fill="#1d1848"/>
+      <circle cx="390" cy="276" r="2.6" fill="#f2c14e"/>
+      <circle cx="410" cy="276" r="2.6" fill="#f2c14e"/>
+      <path d="M400,244 L402.5,249.5 L408,252 L402.5,254.5 L400,260 L397.5,254.5 L392,252 L397.5,249.5 Z" fill="#f2c14e"/>
+    </svg>
+    <div class="hero-cap">점술가의 두 손바닥 위로 펼쳐지는 우주의 별자리</div>
+  </div>
+
+  <!-- 입력 -->
+  <section class="card" id="setup">
+    <h2 id="setupTitle">✨ 나의 정보</h2>
+    <form id="form" novalidate>
+      <label for="name">이름 (목록에 표시돼요)</label>
+      <input id="name" type="text" maxlength="12" placeholder="예) 엄마, 지민" autocomplete="off">
+      <label for="birth">생년월일 (양력)</label>
+      <input id="birth" type="date" min="1900-01-01" max="2100-12-31">
+      <div class="row2">
+        <div>
+          <label for="btime">태어난 시간</label>
+          <input id="btime" type="time">
+        </div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:10px">
+          <label class="chk"><input type="checkbox" id="timeUnknown">시간을 몰라요</label>
+        </div>
+      </div>
+      <label for="place">태어난 지역 (위도·경도 자동 적용)</label>
+      <select id="place"></select>
+      <div id="customBox" class="hidden">
+        <div class="row2">
+          <div>
+            <label for="lat">위도 (남반구는 음수)</label>
+            <input id="lat" type="number" step="0.0001" min="-90" max="90" placeholder="예) 37.5665">
+          </div>
+          <div>
+            <label for="lon">경도 (서쪽은 음수)</label>
+            <input id="lon" type="number" step="0.0001" min="-180" max="180" placeholder="예) 126.9780">
+          </div>
+        </div>
+        <label for="tz">시간대</label>
+        <select id="tz"></select>
+      </div>
+      <div class="hint-line">태어난 시간과 지역은 서양 <b>상승궁(ASC)</b>과 동양 <b>진태양시 기반 사주팔자</b> 계산에 쓰여요. 입력한 정보는 이 기기의 브라우저에만 저장돼요.</div>
+      <div class="form-err" id="formErr" role="alert" hidden></div>
+      <button class="main" id="goBtn" type="submit">운세 보기</button>
+    </form>
+    <div class="form-actions">
+      <button class="btn-sub" id="cancelBtn" type="button" hidden>취소</button>
+      <span id="delArea"></span>
+    </div>
+  </section>
+
+  <!-- 결과 -->
+  <section id="result" class="hidden">
+    <div class="card">
+      <div class="people" id="people" aria-label="저장된 사람"></div>
+      <div class="greet">
+        <div>
+          <div class="who" id="greetWho"></div>
+          <div class="chips" id="greetChips"></div>
+        </div>
+        <div class="greet-actions">
+          <button class="btn-sub" id="copyBtn" type="button">운세 복사</button>
+          <button class="btn-sub" id="editBtn" type="button">정보 수정</button>
+        </div>
+      </div>
+      <textarea class="copy-box" id="copyBox" readonly hidden aria-label="복사할 운세 내용"></textarea>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" type="button" data-tab="west" aria-selected="true">⭐ 서양 별자리</button>
+      <button class="tab" role="tab" type="button" data-tab="east" aria-selected="false">🐉 동양 띠별</button>
+      <button class="tab" role="tab" type="button" data-tab="tarot" aria-selected="false">🔮 오늘의 타로</button>
+    </div>
+
+    <section class="card panel active" id="panel-west" role="tabpanel"></section>
+    <section class="card panel" id="panel-east" role="tabpanel"></section>
+    <section class="card panel" id="panel-tarot" role="tabpanel"></section>
+  </section>
+
+  <footer>
+    동서양 역학(사주팔자 · 상승궁 · 별자리 · 타로)을 재미로 조합한 운세예요.<br>
+    월주·절기는 근사치라 절기 경계일에 태어났다면 차이가 있을 수 있어요.<br>
+    같은 날에는 언제 열어도 같은 운세가 나와요. 점술은 참고용일 뿐이에요 🍀
+  </footer>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ============ 데이터 ============ */
+const STEMS = "갑을병정무기경신임계";
+const STEMS_HAN = "甲乙丙丁戊己庚辛壬癸";
+const BRANCH_KO = "자축인묘진사오미신유술해";
+const BRANCH_HAN = "子丑寅卯辰巳午未申酉戌亥";
+const ANIMALS = [["쥐","🐭"],["소","🐮"],["범","🐯"],["토끼","🐰"],["용","🐉"],["뱀","🐍"],["말","🐴"],["양","🐑"],["원숭이","🐒"],["닭","🐔"],["개","🐶"],["돼지","🐷"]];
+const EL_KO = ["목(木)","화(火)","토(土)","금(金)","수(水)"];
+const EL_COLOR = ["#7ac08d", "#e5534b", "#d9b45b", "#e8e6df", "#6fb7e5"];
+const BRANCH_EL = [4,2,0,0,2,1,1,2,3,3,2,4]; // 자축인묘진사오미신유술해의 오행(0목..4수)
+const EL_TIP = [
+  "나무(木)의 날 — 새 일의 시작, 공부, 이사에 좋습니다. 곳곳에 녹색을 더해 보세요.",
+  "불(火)의 날 — 열정과 인간관계가 활발해집니다. 움직이고 사람을 만나세요.",
+  "흙(土)의 날 — 안정과 정리의 날. 계획을 세우고 공간을 정돈하면 운이 정렬됩니다.",
+  "쇠(金)의 날 — 결정과 단속의 날. 미뤄둔 결정을 내리고 흰색을 곁들이면 좋습니다.",
+  "물(水)의 날 — 지혜와 유연함의 날. 배우거나 기록하기 좋고, 물을 자주 마시세요."
+];
+const SIGNS = [
+  ["염소","♑",12,22,"12.22 ~ 1.19"],["물병","♒",1,20,"1.20 ~ 2.18"],["물고기","♓",2,19,"2.19 ~ 3.20"],
+  ["양","♈",3,21,"3.21 ~ 4.19"],["황소","♉",4,20,"4.20 ~ 5.20"],["쌍둥이","♊",5,21,"5.21 ~ 6.21"],
+  ["게","♋",6,22,"6.22 ~ 7.22"],["사자","♌",7,23,"7.23 ~ 8.22"],["처녀","♍",8,23,"8.23 ~ 9.22"],
+  ["천칭","♎",9,23,"9.23 ~ 10.22"],["전갈","♏",10,23,"10.23 ~ 11.22"],["사수","♐",11,23,"11.23 ~ 12.21"]
+];
+const TOT = {
+  great: ["하늘이 등을 밀어주는 날입니다. 미뤄두었던 일에 과감히 도전하세요.","사방에서 길이 열리는 대길의 날. 기쁜 소식이 생각보다 먼저 도착합니다.","오늘의 당신은 빛납니다. 중요한 결정을 내리기에 가장 좋은 하루입니다."],
+  good: ["흐름이 순조롭습니다. 미뤄왔던 일을 처리하기 좋은 날입니다.","작은 성취가 쌓여 큰 만족으로 돌아오는 하루입니다.","좋은 기운이 곁에 있습니다. 먼저 손 내미는 사람이 이깁니다."],
+  soso: ["평온하지만 무미건조한 날. 작은 즐거움을 스스로 만들어 보세요.","큰 변화는 없지만 꾸준함이 빛나는 날입니다.","무난한 흐름 속에서도 세심한 주의가 결과를 좌우합니다."],
+  care: ["기운이 다소 어긋난 날입니다. 서두르지 말고 한 발 물러서세요.","오늘은 속도보다 방향을 점검하는 것이 이롭습니다.","사소한 오해가 불어날 수 있습니다. 중요한 대화는 차분하게."]
+};
+const LOVE = {
+  great: ["애정운이 하늘을 찌릅니다. 용기 내어 말한다면 좋은 답을 듣습니다.","서로의 마음이 잘 통하는 날. 소중한 사람과 시간을 보내세요."],
+  good: ["부드러운 말 한마디가 관계를 한층 따뜻하게 만듭니다.","오래된 인연에서 뜻밖의 설렘이 시작될 수 있습니다."],
+  soso: ["설렘보다 안정이 필요한 날. 함께 있는 것만으로 충분합니다.","기다리는 마음이 답답해도 오늘은 조용히 곁을 지키세요."],
+  care: ["작은 말다툼이 커질 수 있습니다. 오늘은 듣기에 집중하세요.","기대가 클수록 실망도 큽니다. 마음의 짐을 조금 내려놓으세요."]
+};
+const MONEY = {
+  great: ["재물운이 활짝 열렸습니다. 계획했던 지출과 투자에 청신호입니다.","뜻밖의 수입이나 누군가의 감사한 선물이 있을 수 있습니다."],
+  good: ["아껴둔 만큼 돌아오는 날. 가계부를 정리하면 기분까지 좋아집니다.","작은 절약이 큰 여유로 이어집니다. 오늘의 선택이 저축이 됩니다."],
+  soso: ["욕심보다 실용이 이롭습니다. 필요한 만큼만 쓰세요.","금전 거래는 서두르지 마세요. 확인을 한 번 더 하세요."],
+  care: ["충동 소비가 눈앞에 있습니다. 지갑은 한 번 더 단속하세요.","돈 문제로 다투지 않도록 기록과 증빙을 남기세요."]
+};
+const HEALTH = {
+  great: ["몸이 가볍고 활력이 넘칩니다. 오래 걷거나 뛰기 좋은 날입니다.","쌓인 피로가 풀리는 날. 좋은 음식과 숙면으로 자신을 축하하세요."],
+  good: ["컨디션이 안정적입니다. 가벼운 스트레칭이 큰 도움이 됩니다.","평소보다 조금 일찍 잠들면 내일이 더 밝아집니다."],
+  soso: ["무리한 일정은 금물. 중간중간 물 한 잔과 휴식을 챙기세요.","환절기 컨디션 관리에 조금 더 신경 쓰세요."],
+  care: ["피로가 쉽게 쌓입니다. 오늘은 쉬어가는 용기가 약입니다.","찬 음식과 자극적인 음식은 피하고 몸을 따뜻하게 하세요."]
+};
+const ADVICE = [
+  "아침에 가장 먼저 창문을 열고 깊게 세 번 호흡해 보세요.","오늘은 감사 인사를 한 번 더 전하는 사람이 운을 쌓습니다.",
+  "가장 하기 싫은 일부터 끝내면 하루가 순풍을 탑니다.","고민 중인 답이 있다면, 물을 마시고 다시 생각해 보세요.",
+  "지갑 속 영수증을 정리하는 것부터 시작해 보세요.","오늘 들은 조언 중 하나는 곧 빛을 냅니다.",
+  "10분만 산책해도 운의 흐름이 부드러워집니다.","받은 칭찬은 흘려보내지 말고 새겨두세요.",
+  "저녁엔 하루를 세 줄로 기록해 두면 내일이 또렷해집니다.","작은 선한 행동이 오늘의 가장 큰 행운이 됩니다."
+];
+const ITEMS = ["라운드 셔츠","유리컵","손수건","새 볼펜","초콜릿 한 조각","작은 화분","은 장신구","읽다 만 책","따뜻한 차","흰 양말","손목시계","레몬 에이드","노트와 펜","좋아하는 음악"];
+const COLORS = [["레드","#e5534b"],["오렌지","#f28c38"],["옐로우","#f5c76a"],["그린","#7ac08d"],["민트","#6fd3c7"],["스카이블루","#6fb7e5"],["블루","#5a6fe0"],["퍼플","#8f7ff0"],["핑크","#f08fb5"],["화이트","#f4f1ea"],["브라운","#a9714b"],["골드","#d9b45b"]];
+const TIMES = ["새벽 (5시~7시)","아침 (7시~9시)","오전 (9시~11시)","정오 (11시~13시)","이른 오후 (13시~15시)","늦은 오후 (15시~17시)","저녁 (17시~19시)","밤 (19시~21시)","늦은 밤 (21시~23시)"];
+const DIRS = ["동","남","서","북","남동","남서","북동","북서"];
+const EW_ACTIONS = [
+  "아침 식사를 거르지 않기","중요한 연락은 오전에 끝내기","책상 위를 3분만 정리하기","만나는 약속 하나 만들기",
+  "지출 기록 한 줄 남기기","자기 전 휴대폰 30분 끄기","감사한 사람에게 메시지 보내기","물 8잔 채우기"
+];
+const REL_TEXT = {
+  "충": "오늘의 일진이 당신의 띠와 충(冲)입니다. 큰 결정·계약·이사는 조금 미루고, 약속 시간과 문서 확인을 꼼꼼히 하세요. 마음의 여유가 최고의 개운법입니다.",
+  "삼합": "일진과 당신의 띠가 삼합(三合)의 기운입니다. 사람을 만나고 일을 시작하기 좋은 길일입니다. 미뤄둔 청탁과 제안에 응해도 좋습니다.",
+  "육합": "일진과 당신의 띠가 육합(六合)으로 부드럽게 맞물립니다. 협력과 화해에 최적입니다. 먼저 양보하는 쪽이 더 큰 운을 얻습니다.",
+  "평": "일진과 띠가 크게 어긋나지 않습니다. 평소의 페이스대로 꾸준함이 답입니다. 작은 성실이 오늘의 복을 쌓습니다."
+};
+const TAROT = [
+  ["바보","The Fool","🌱","새로운 시작, 순수한 모험심이 당신을 이끕니다.","준비 없는 도약은 금물입니다. 한 번 더 점검하세요."],
+  ["마법사","The Magician","🪄","창의력이 폭발하는 날. 생각을 곧 행동으로 옮기세요.","재능이 흩어집니다. 목표를 하나로 좁히세요."],
+  ["여사제","The High Priestess","🌙","직관이 날카롭습니다. 첫 느낌을 믿어도 좋습니다.","직감을 억누르고 있군요. 조용한 시간이 필요합니다."],
+  ["여황제","The Empress","🌷","풍요와 사랑의 결실이 열리는 날입니다.","타인을 돌보기 전에 나를 먼저 돌보세요."],
+  ["황제","The Emperor","👑","안정과 질서 속에서 솔선수범하면 존경을 받습니다.","고집이 벽이 됩니다. 유연함을 더하세요."],
+  ["교황","The Hierophant","🔑","신뢰할 만한 조언자가 나타납니다. 가르침에 귀 기울이세요.","낡은 관습이 당신을 묶고 있을지도 몰라요."],
+  ["연인","The Lovers","💞","마음이 향하는 선택이 정답입니다. 사랑에 충실하세요.","관계의 갈등이 잠들지 못하게 합니다. 대화가 약입니다."],
+  ["전차","The Chariot","🏇","추진력이 강합니다. 목표를 향해 질주하세요.","방향이 흔들립니다. 속도를 조금 낮추세요."],
+  ["힘","Strength","🦁","부드러운 인내가 거친 문제를 이깁니다.","자신감이 다소 흔들립니다. 작은 성공부터 쌓으세요."],
+  ["은둔자","The Hermit","🏮","혼자만의 시간이 지혜를 줍니다. 성찰이 답입니다.","고립이 길어지고 있습니다. 누군가에게 연락해 보세요."],
+  ["운명의 수레바퀴","Wheel of Fortune","🎡","전환점에 섰습니다. 변화의 물결을 타면 운이 열립니다.","예상 못 한 변수가 있습니다. 유연하게 대응하세요."],
+  ["정의","Justice","⚖️","정당한 결과가 돌아옵니다. 균형 감각이 빛납니다.","판단이 어긋날 수 있으니 양쪽을 모두 들어보세요."],
+  ["매달린 사람","The Hanged Man","🙃","멈춤이 곧 전환입니다. 다른 각도에서 보세요.","정체가 답답합니다. 완벽을 내려놓아 보세요."],
+  ["죽음","Death","🦋","끝은 시작입니다. 오래 붙잡던 것을 내려놓으면 새싹이 움틉니다.","지난 것에 매달리면 에너지가 새어 나갑니다."],
+  ["절제","Temperance","⚗️","조화로운 흐름. 서두르지 않는 사람이 이깁니다.","과함과 부족함 사이에서 균형을 찾으세요."],
+  ["악마","The Devil","🔗","끌리는 대상이 있다면 그 이면을 살피세요.","집착을 끊을 시간입니다. 내려놓음이 해방입니다."],
+  ["탑","The Tower","⚡","깨어나기 위한 붕괴. 갑작스러운 소식도 결국 축복입니다.","충격을 줄이려면 미리 정리하고 비상구를 확인하세요."],
+  ["별","The Star","🌟","희망의 별이 떠 있습니다. 영감과 응원이 따릅니다.","기대치를 조금 낮추면 마음이 편해집니다."],
+  ["달","The Moon","🌖","직관과 불안 사이. 밤하늘의 힌트를 읽어보세요.","오해가 풀립니다. 궁금한 건 직접 물어보세요."],
+  ["태양","The Sun","☀️","성공과 활력이 당신을 비춥니다. 최고의 하루입니다.","자만심이 과열로 번질 수 있습니다. 겸손을 더하세요."],
+  ["심판","Judgement","📯","과거를 재평가하고 부활하는 날. 용서와 결단이 함께 옵니다.","과거의 패턴이 반복됩니다. 새로운 선택이 필요합니다."],
+  ["세계","The World","🌍","완성과 축하의 카드. 목표가 눈앞에 닿았습니다.","마무리가 늦어지고 있습니다. 마지막 매듭을 지으세요."]
+];
+const CITIES = [
+  ["서울", 37.5665, 126.9780], ["인천", 37.4563, 126.7052], ["수원", 37.2636, 127.0286],
+  ["춘천", 37.8813, 127.7300], ["강릉", 37.7519, 128.8761], ["대전", 36.3504, 127.3845],
+  ["세종", 36.4800, 127.2890], ["청주", 36.6424, 127.4890], ["전주", 35.8242, 127.1480],
+  ["광주", 35.1595, 126.8526], ["대구", 35.8714, 128.6014], ["포항", 36.0190, 129.3435],
+  ["부산", 35.1796, 129.0756], ["울산", 35.5384, 129.3114], ["창원", 35.2280, 128.6811],
+  ["제주", 33.4996, 126.5312], ["🌍 직접 입력 (해외 포함)", "custom"]
+];
+const TZS = [
+  ["한국·일본 (UTC+9)", 9], ["중국·대만·싱가포르 (UTC+8)", 8], ["태국·베트남 (UTC+7)", 7],
+  ["인도 (UTC+5.5)", 5.5], ["두바이 (UTC+4)", 4], ["유럽 대부분 (UTC+1)", 1], ["영국·포르투갈 (UTC+0)", 0],
+  ["미국 동부 (UTC-5)", -5], ["미국 중부 (UTC-6)", -6], ["미국 산악 (UTC-7)", -7], ["미국 서부 (UTC-8)", -8],
+  ["하와이 (UTC-10)", -10], ["호주 동부 (UTC+10)", 10], ["뉴질랜드 (UTC+12)", 12]
+];
+const ASC_SIGNS = [SIGNS[3], SIGNS[4], SIGNS[5], SIGNS[6], SIGNS[7], SIGNS[8], SIGNS[9], SIGNS[10], SIGNS[11], SIGNS[0], SIGNS[1], SIGNS[2]];
+const ASC_DESC = [
+  "양자리 상승 — 첫인상이 뜨겁고 직진형입니다. 해야 할 일을 빠르게 시작하는 에너지를 타고났습니다.",
+  "황소자리 상승 — 묵직하고 믿음직한 첫인상. 느리지만 확실하게 자리를 만들어 갑니다.",
+  "쌍둥이자리 상승 — 재치 있고 말솜씨 좋은 첫인상. 말과 아이디어가 곧 무기입니다.",
+  "게자리 상승 — 따뜻하고 보호 본능이 강한 첫인상. 마음의 문은 천천히, 그러나 깊게 엽니다.",
+  "사자자리 상승 — 당당하고 화려한 첫인상. 무대 중앙에 서도 어색하지 않은 카리스마입니다.",
+  "처녀자리 상승 — 깔끔하고 꼼꼼한 첫인상. 세심한 관찰이 당신의 힘입니다.",
+  "천칭자리 상승 — 우아하고 조화로운 첫인상. 사교성과 미적 감각이 빛납니다.",
+  "전갈자리 상승 — 강렬하고 신비로운 첫인상. 한번 마음먹으면 뒤집지 않는 통찰력입니다.",
+  "사수자리 상승 — 밝고 털털한 첫인상. 낙천적인 에너지가 주변을 환하게 만듭니다.",
+  "염소자리 상승 — 중후하고 성실한 첫인상. 시간이 갈수록 신뢰가 쌓이는 타입입니다.",
+  "물병자리 상승 — 독특하고 개성적인 첫인상. 남과 다른 시선이 매력입니다.",
+  "물고기자리 상승 — 몽환적이고 다정한 첫인상. 타인의 마음에 스며드는 감수성입니다."
+];
+const DAYGAN_DESC = [
+  "갑(甲) 목 일간 — 큰 나무처럼 곧고 리더십이 있습니다. 한번 뿌리내리면 흔들리지 않습니다.",
+  "을(乙) 목 일간 — 화초와 덩굴처럼 유연합니다. 환경에 적응하며 끈질기게 성장합니다.",
+  "병(丙) 화 일간 — 태양처럼 밝고 개방적입니다. 어디서든 존재감으로 주변을 밝힙니다.",
+  "정(丁) 화 일간 — 촛불처럼 은은하고 섬세합니다. 사람 마음을 데우는 배려가 재능입니다.",
+  "무(戊) 토 일간 — 큰 산처럼 묵직합니다. 포용력과 신뢰가 자산이지만 고집도 셉니다.",
+  "기(己) 토 일간 — 밭처럼 정성껏 가꾸는 실속형. 키우고 기르는 일에 재능이 있습니다.",
+  "경(庚) 금 일간 — 무쇠처럼 강단 있습니다. 결단력과 의리, 정의감이 강합니다.",
+  "신(辛) 금 일간 — 보석처럼 세련되었습니다. 예민한 감각의 완벽주의자입니다.",
+  "임(壬) 수 일간 — 큰 강처럼 지혜롭습니다. 포부가 크고 흐름을 읽는 두뇌파입니다.",
+  "계(癸) 수 일간 — 이슬비처럼 은근합니다. 촉이 좋고 눈치가 빠른 직관형입니다."
+];
+const EL_ICON = ["🌱", "🔥", "⛰️", "⚒️", "💧"];
+const EL_BALANCE = [
+  "녹색 소품과 아침 산책, 새로운 배움으로 목(木) 기운을 보충해 보세요.",
+  "햇볕 쬐기, 따뜻한 음식, 레드 컬러로 화(火) 기운을 데워 보세요.",
+  "공간 정리와 흙 만지기, 황토색 소품으로 토(土)의 중심을 잡아 보세요.",
+  "금속 소품과 화이트 컬러, 결정을 빠르게 내는 습관이 금(金) 기운을 살립니다.",
+  "물 자주 마시기, 물가 산책, 블랙·블루 컬러로 수(水)의 지혜를 채우세요."
+];
+const REL_EL_TEXT = [
+  ["동기(同氣)", "오늘 일진이 나와 같은 오행입니다. 나답게 꾸준히 유지하는 것이 오늘의 힘입니다.", ""],
+  ["내가 생함(我生)", "내 기운이 오늘의 기운으로 흘러 나갑니다. 베풀고 가르치는 날에 운이 쌓입니다.", ""],
+  ["내가 극함(我剋)", "내 일간이 오늘의 기운을 다스립니다. 주도권을 잡고 밀어붙이기 좋은 날입니다.", "good"],
+  ["나를 극함(剋我)", "오늘 일진이 내 일간을 압박합니다. 무리한 확장보다 방어와 정비가 이롭습니다.", "bad"],
+  ["나를 생함(生我)", "오늘 일진이 내 일간을 생(生)합니다. 도움과 기회가 들어오는 반가운 흐름입니다.", "good"]
+];
+
+/* ============ 유틸 ============ */
+function xmur3(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = h << 13 | h >>> 19;
+  }
+  return function () {
+    h = Math.imul(h ^ h >>> 16, 2246822507);
+    h = Math.imul(h ^ h >>> 13, 3266489909);
+    return (h ^= h >>> 16) >>> 0;
+  };
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function makeRng(seedStr) { return mulberry32(xmur3(seedStr)()); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+// 브라우저 저장소: 막혀 있어도 앱은 정상 동작
+function read(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
+function write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+/* ============ 역학 계산 ============ */
+function jdn(y, m, d) { return Date.UTC(y, m - 1, d) / 86400000 + 2440588; }
+// 일진: 2000-01-07(甲子) 기준. index 0 = 甲子
+function dayPillar(y, m, d) {
+  const idx = ((jdn(y, m, d) + 49) % 60 + 60) % 60;
+  const s = idx % 10, b = idx % 12;
+  return { idx, s, b, stem: STEMS[s], branch: BRANCH_KO[b],
+    han: STEMS_HAN[s] + BRANCH_HAN[b], el: Math.floor(s / 2), animal: ANIMALS[b] };
+}
+// 년주: 입춘(2/4경) 이전이면 전년도
+function yearPillar(y, m, d) {
+  let yy = y;
+  if (m < 2 || (m === 2 && d < 4)) yy -= 1;
+  const idx = ((yy - 4) % 60 + 60) % 60;
+  const s = idx % 10, b = idx % 12;
+  return { idx, s, han: STEMS_HAN[s] + BRANCH_HAN[b], ko: STEMS[s] + BRANCH_KO[b], b };
+}
+function getSign(m, d) {
+  let sign = SIGNS[0];
+  for (const t of SIGNS) if (m > t[2] || (m === t[2] && d >= t[3])) sign = t;
+  return sign;
+}
+function animalOf(by, bm, bd) {
+  let y = by;
+  if (bm < 2 || (bm === 2 && bd < 4)) y -= 1;
+  const idx = ((y - 4) % 12 + 12) % 12;
+  return { idx, y, name: ANIMALS[idx][0], emoji: ANIMALS[idx][1] };
+}
+function relation(uIdx, dIdx) {
+  if (Math.abs(uIdx - dIdx) % 12 === 6) return "충";
+  const yuk = [[0,1],[11,2],[3,10],[4,9],[5,8],[6,7]];
+  if (yuk.some(p => (uIdx === p[0] && dIdx === p[1]) || (uIdx === p[1] && dIdx === p[0]))) return "육합";
+  const sam = [[8,0,4],[11,3,7],[2,6,10],[5,9,1]];
+  if (sam.some(g => g.includes(uIdx) && g.includes(dIdx))) return "삼합";
+  return "평";
+}
+function band(v) { return v >= 80 ? "great" : v >= 65 ? "good" : v >= 45 ? "soso" : "care"; }
+
+// 균시차(분): NOAA 근사식
+function eqOfTime(y, m, d) {
+  const doy = Math.floor((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 1)) / 86400000) + 1;
+  const B = 2 * Math.PI * (doy - 81) / 365;
+  return 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+}
+// 진태양시(분) = 표준시 + (경도 − 표준자오선)×4분 + 균시차
+function trueSolarMin(y, m, d, hh, mm, lon, tz) {
+  return hh * 60 + mm + (lon - tz * 15) * 4 + eqOfTime(y, m, d);
+}
+const TERM_DATES = [[2,4],[3,6],[4,5],[5,6],[6,6],[7,7],[8,8],[9,8],[10,8],[11,7],[12,7],[1,6]];
+const TERM_BRANCH = [2,3,4,5,6,7,8,9,10,11,0,1]; // 입춘=인월 … 대설=자월, 소한=축월
+// 월주: 절기 근사일 기준
+function monthPillar(y, m, d) {
+  const segs = [];
+  for (let yy = y - 1; yy <= y + 1; yy++)
+    TERM_DATES.forEach(([mm, dd], i) => segs.push({ key: yy * 10000 + mm * 100 + dd, b: TERM_BRANCH[i] }));
+  segs.sort((a, b) => a.key - b.key);
+  const key = y * 10000 + m * 100 + d;
+  let cur = segs[0];
+  for (const s of segs) if (s.key <= key) cur = s;
+  const myY = (m < 2 || (m === 2 && d < 4)) ? y - 1 : y;
+  const seq = (cur.b - 2 + 12) % 12;
+  const ys = ((myY - 4) % 10 + 10) % 10;
+  const s = ((ys % 5) * 2 + 2 + seq) % 10; // 월간: 甲己년 丙寅부터
+  return { s, b: cur.b, stem: STEMS[s], branch: BRANCH_KO[cur.b], han: STEMS_HAN[s] + BRANCH_HAN[cur.b] };
+}
+// 사주팔자 — 23시 이후 출생은 다음날 일주 적용(야자시)
+function buildSaju(by, bm, bd, timeKnown, hh, mm, lon, tz) {
+  const year = yearPillar(by, bm, bd);
+  const month = monthPillar(by, bm, bd);
+  let shift = 0, solarH = null, hourBranch = null;
+  if (timeKnown) {
+    let min = trueSolarMin(by, bm, bd, hh, mm, lon, tz);
+    if (min < 0) { min += 1440; shift = -1; } else if (min >= 1440) { min -= 1440; shift = 1; }
+    solarH = min / 60;
+    if (solarH >= 23) shift += 1;
+    hourBranch = Math.floor(((solarH + 1) % 24) / 2);
+  }
+  const nd = new Date(by, bm - 1, bd + shift);
+  const day = dayPillar(nd.getFullYear(), nd.getMonth() + 1, nd.getDate());
+  let hour = null;
+  if (timeKnown) {
+    const hs = ((day.s % 5) * 2 + hourBranch) % 10; // 시간: 甲己일 甲子時부터
+    hour = { s: hs, b: hourBranch, stem: STEMS[hs], branch: BRANCH_KO[hourBranch], han: STEMS_HAN[hs] + BRANCH_HAN[hourBranch] };
+  }
+  const els = [Math.floor(year.s / 2), BRANCH_EL[year.b], Math.floor(month.s / 2), BRANCH_EL[month.b],
+    Math.floor(day.s / 2), BRANCH_EL[day.b]];
+  if (hour) els.push(Math.floor(hour.s / 2), BRANCH_EL[hour.b]);
+  const count = [0, 0, 0, 0, 0];
+  els.forEach(e => count[e]++);
+  const weakest = count.indexOf(Math.min(...count));
+  const strongest = count.indexOf(Math.max(...count));
+  return { year, month, day, hour, solarH, count, weakest, strongest, dayEl: Math.floor(day.s / 2) };
+}
+// 상승궁(ASC)·천정(MC)
+function ascendant(y, m, d, hh, mm, lat, lon, tz) {
+  const jd = jdn(y, m, d) - 0.5 + (hh - tz + mm / 60) / 24;
+  const t = jd - 2451545.0;
+  const gmst = 280.46061837 + 360.98564736629 * t;
+  const ramc = (((gmst + lon) % 360) + 360) % 360;
+  const e = 23.4392911 * Math.PI / 180;
+  const r = ramc * Math.PI / 180, phi = lat * Math.PI / 180;
+  let asc = Math.atan2(Math.cos(r), -(Math.sin(r) * Math.cos(e) + Math.tan(phi) * Math.sin(e))) * 180 / Math.PI;
+  let mc = Math.atan2(Math.sin(r), Math.cos(r) * Math.cos(e)) * 180 / Math.PI;
+  asc = ((asc % 360) + 360) % 360;
+  mc = ((mc % 360) + 360) % 360;
+  const si = Math.floor(asc / 30), mi = Math.floor(mc / 30);
+  return { deg: asc, signIdx: si, sign: ASC_SIGNS[si], mcDeg: mc, mcSign: ASC_SIGNS[mi] };
+}
+
+/* ============ 운세 생성 ============ */
+function score(rng, min) { return min + Math.floor(rng() * (101 - min)); }
+function pickFrom(r, arr) { return arr[Math.floor(r() * arr.length)]; }
+function genFortune(seedStr, totalMin) {
+  const r = makeRng(seedStr);
+  const s = { total: score(r, totalMin), love: score(r, 20), money: score(r, 20), health: score(r, 20) };
+  return {
+    scores: s,
+    text: {
+      total: pickFrom(r, TOT[band(s.total)]),
+      love: pickFrom(r, LOVE[band(s.love)]),
+      money: pickFrom(r, MONEY[band(s.money)]),
+      health: pickFrom(r, HEALTH[band(s.health)]),
+    },
+    color: pickFrom(r, COLORS),
+    num: 1 + Math.floor(r() * 45),
+    time: pickFrom(r, TIMES),
+    item: pickFrom(r, ITEMS),
+    dir: pickFrom(r, DIRS),
+    action: pickFrom(r, EW_ACTIONS),
+    lotto: (function () {
+      const set = new Set();
+      while (set.size < 6) set.add(1 + Math.floor(r() * 45));
+      return [...set].sort((a, b) => a - b);
+    })(),
+  };
+}
+function drawTarot(seedStr) {
+  const r = makeRng(seedStr);
+  const i = Math.floor(r() * TAROT.length);
+  return { num: i, card: TAROT[i], reversed: r() < 0.4 };
+}
+
+/* ============ 화면 그리기 ============ */
+const $ = s => document.querySelector(s);
+const today = new Date();
+const ty = today.getFullYear(), tm = today.getMonth() + 1, td = today.getDate();
+const dateKey = `${ty}-${tm}-${td}`;
+const weekKor = ["일","월","화","수","목","금","토"];
+const dayP = dayPillar(ty, tm, td);
+const yearP = yearPillar(ty, tm, td);
+
+let profiles = [];      // 저장된 사람 목록
+let activeId = null;    // 지금 보고 있는 사람
+let editingId = null;   // 수정 중인 사람 (새로 추가면 null)
+let last = null;        // 복사용 결과
+let flips = read("fortune_flips", {});
+
+function scoresHtml(scores) {
+  const rows = [["총운","total"],["애정운","love"],["재물운","money"],["건강운","health"]];
+  return `<div class="scores">` + rows.map(([k, key]) => `
+    <div class="row">
+      <div class="lbl"><span>${k}</span><span>${scores[key]}점</span></div>
+      <div class="bar"><div class="fill" data-w="${scores[key]}"></div></div>
+    </div>`).join("") + `</div>`;
+}
+function animateBars(panel) {
+  requestAnimationFrame(() => setTimeout(() => {
+    panel.querySelectorAll(".fill").forEach(f => f.style.width = f.dataset.w + "%");
+  }, 60));
+}
+function luckyGridHtml(f, isEast) {
+  return `<div class="grid">
+    <div class="cell"><div class="k">행운의 색</div><div class="v"><span class="swatch" style="background:${f.color[1]}"></span>${f.color[0]}</div></div>
+    <div class="cell"><div class="k">행운의 숫자</div><div class="v">${f.num}</div></div>
+    <div class="cell"><div class="k">행운의 시간</div><div class="v">${f.time}</div></div>
+    ${isEast
+      ? `<div class="cell"><div class="k">길방(吉方)</div><div class="v">🧭 ${f.dir}쪽</div></div>`
+      : `<div class="cell"><div class="k">행운의 아이템</div><div class="v">🍀 ${f.item}</div></div>`}
+    <div class="cell"><div class="k">오늘의 행운 번호</div><div class="v" style="letter-spacing:1px">${f.lotto.join(", ")}</div></div>
+  </div>`;
+}
+function fmtHM(h) {
+  const t = Math.round(h * 60);
+  return String(Math.floor(t / 60) % 24).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+}
+
+function renderWest(sign, f, asc, advice) {
+  const p = $("#panel-west");
+  p.innerHTML = `
+    <div class="sign-head">
+      <div class="sign-sym">${sign[1]}</div>
+      <div>
+        <h2>${sign[0]}자리 운세</h2>
+        <div class="sub">태양 별자리 ${sign[0]} (${sign[4]})</div>
+      </div>
+    </div>
+    ${asc ? `
+    <div class="quote">⬆️ <b>상승궁(ASC) ${asc.sign[1]} ${asc.sign[0]}자리 ${asc.deg.toFixed(1)}°</b>
+      · 천정(MC) ${asc.mcSign[1]} ${asc.mcSign[0]}자리 ${asc.mcDeg.toFixed(1)}°<br>
+      ${ASC_DESC[asc.signIdx]}<br>
+      <span class="sub">태어난 시각(표준시)과 위도·경도로 계산한 황도 12궁 상승궁입니다.</span></div>`
+    : `<div class="quote">⬆️ 태어난 <b>시간과 지역</b>을 입력하면 상승궁(ASC)까지 계산해 더 정밀하게 봐드립니다.</div>`}
+    ${scoresHtml(f.scores)}
+    <div class="quote">🌟 <b>별의 한마디</b><br>${f.text.total}</div>
+    <div class="quote">💌 ${f.text.love}</div>
+    <div class="quote">💰 ${f.text.money}</div>
+    <div class="quote">🌿 ${f.text.health}</div>
+    ${luckyGridHtml(f, false)}
+    <div class="quote">🧙 ${advice}</div>`;
+  animateBars(p);
+}
+function renderEast(animal, f, rel, saju, elRel) {
+  const p = $("#panel-east");
+  const relCls = rel === "충" ? "bad" : (rel === "평" ? "" : "good");
+  const solarNote = saju.solarH !== null
+    ? ` 태어난 시각을 경도·균시차로 보정한 <b>진태양시 ${fmtHM(saju.solarH)}</b>로 시주를 계산했습니다.`
+    : "";
+  p.innerHTML = `
+    <div class="sign-head">
+      <div class="sign-sym">${animal.emoji}</div>
+      <div>
+        <h2>${animal.name}띠 운세</h2>
+        <div class="sub">${animal.y}년생 (입춘 기준) · 오늘은 ${yearP.ko}년 ${dayP.stem}${dayP.branch}일(${dayP.han})</div>
+      </div>
+    </div>
+    <div class="meta-line">
+      <span>오늘의 일진 오행 <span class="el-badge" style="background:${EL_COLOR[dayP.el]}">${EL_KO[dayP.el]}</span></span>
+      <span>오늘의 띠 <b>${dayP.animal[1]} ${dayP.animal[0]}</b></span>
+      <span>나와의 관계 <span class="badge ${relCls}">${rel}</span></span>
+    </div>
+    <div class="quote">${REL_TEXT[rel]}</div>
+    <div class="quote">🌬️ ${EL_TIP[dayP.el]}</div>
+
+    <h2 style="margin-top:20px">🀄 나의 사주팔자 <span class="sub" style="font-family:var(--f-body)">태어난 시간·지역 기반</span></h2>
+    <div class="pillars">
+      <div class="pillar"><div class="pk">년주</div><div class="pv">${saju.year.han}</div><div class="ph">${saju.year.ko}</div></div>
+      <div class="pillar"><div class="pk">월주</div><div class="pv">${saju.month.han}</div><div class="ph">${saju.month.stem}${saju.month.branch}</div></div>
+      <div class="pillar"><div class="pk">일주</div><div class="pv">${saju.day.han}</div><div class="ph">${saju.day.stem}${saju.day.branch}</div></div>
+      <div class="pillar"><div class="pk">시주</div><div class="pv">${saju.hour ? saju.hour.han : "—"}</div><div class="ph">${saju.hour ? saju.hour.stem + saju.hour.branch : "시간 모름"}</div></div>
+    </div>
+    <div class="hint-line">월주는 절기 근사일 기준이며, 23시 이후 출생은 다음날 일주를 적용했습니다.${solarNote}</div>
+    <div class="quote">🪵 <b>나의 일간</b><br>${DAYGAN_DESC[saju.day.s]}</div>
+    <div class="meta-line" style="margin-top:12px">
+      <span>나의 일간 오행 <span class="el-badge" style="background:${EL_COLOR[saju.dayEl]}">${EL_KO[saju.dayEl]}</span></span>
+      <span>가장 강한 오행 ${EL_ICON[saju.strongest]} ${EL_KO[saju.strongest]}</span>
+      <span>가장 약한 오행 ${EL_ICON[saju.weakest]} ${EL_KO[saju.weakest]}</span>
+    </div>
+    <div class="elrow">${EL_KO.map((k, i) => `<span class="elchip">${EL_ICON[i]} ${k} <b>${saju.count[i]}</b></span>`).join("")}</div>
+    <div class="quote">⚖️ <b>오행의 균형</b> — ${EL_BALANCE[saju.weakest]}</div>
+    <div class="quote">🔄 <b>오늘 일진 × 나의 일간</b> · <span class="badge ${elRel[2]}">${elRel[0]}</span><br>${elRel[1]}</div>
+
+    ${scoresHtml(f.scores)}
+    <div class="quote">📜 <b>명리의 한마디</b><br>${f.text.total}</div>
+    <div class="quote">💞 ${f.text.love}</div>
+    <div class="quote">💰 ${f.text.money}</div>
+    <div class="quote">🌿 ${f.text.health}</div>
+    ${luckyGridHtml(f, true)}
+    <div class="quote">✅ 오늘의 개운 행동 · ${f.action}</div>`;
+  animateBars(p);
+}
+function tarotTextHtml(t, name) {
+  const c = t.card;
+  const pos = t.reversed ? "역방향 (Reversed)" : "정방향 (Upright)";
+  return `
+    <div class="pos">${c[0]} · ${pos}</div>
+    <div class="desc">${t.reversed ? c[4] : c[3]}</div>
+    <div class="hint">타로는 오늘의 흐름을 읽는 거울입니다. ${esc(name || "당신")}님의 선택이 카드보다 큽니다.</div>`;
+}
+function renderTarot(t, name, flipKey) {
+  const p = $("#panel-tarot");
+  const c = t.card;
+  const done = !!flips[flipKey];
+  p.innerHTML = `
+    <h2>🔮 오늘의 타로 카드 (하루 한 장)</h2>
+    <div class="tstage">
+      <button class="flip${done ? " flipped" : ""}" id="tflip" type="button" aria-label="타로 카드 뒤집기">
+        <div class="flip-inner">
+          <div class="face front"><div class="star">✦</div><div class="pick">카드를 눌러 뒤집어 보세요</div></div>
+          <div class="face back">
+            <div class="num">${t.num}</div>
+            <div class="sym">${c[2]}</div>
+            <div class="tname">${c[0]}</div>
+            <div class="ten">${c[1]}</div>
+          </div>
+        </div>
+      </button>
+      <div class="ttext" id="ttext">${done ? tarotTextHtml(t, name) : `<div class="hint">카드를 누르면 오늘의 메시지가 열립니다.</div>`}</div>
+    </div>`;
+  const flip = $("#tflip");
+  flip.addEventListener("click", () => {
+    if (flip.classList.contains("flipped")) return;
+    flip.classList.add("flipped");
+    $("#ttext").innerHTML = tarotTextHtml(t, name);
+    flips[flipKey] = true;
+    // 오늘 것만 남기고 정리
+    Object.keys(flips).forEach(k => { if (!k.startsWith(dateKey + "|")) delete flips[k]; });
+    write("fortune_flips", flips);
+  });
+}
+
+function renderPeople() {
+  $("#people").innerHTML = profiles.map(p =>
+    `<button class="person" type="button" data-id="${esc(p.id)}" aria-pressed="${p.id === activeId}">${esc(p.name)}</button>`
+  ).join("") + `<button class="person add" type="button" id="addPerson">+ 사람 추가</button>`;
+}
+
+function renderAll(p) {
+  activeId = p.id;
+  write("fortune_active", activeId);
+  const nameVal = (p.name || "").trim();
+  const [by, bm, bd] = p.birth.split("-").map(Number);
+  const sign = getSign(bm, bd);
+  const animal = animalOf(by, bm, bd);
+  const timeKnown = !!p.timeKnown && !!p.time;
+  const [bhh, bmm] = timeKnown ? p.time.split(":").map(Number) : [0, 0];
+  let placeName = "서울(기본)", lat = 37.5665, lon = 126.9780, tz = 9;
+  if (p.place === "custom") {
+    lat = parseFloat(p.lat); lon = parseFloat(p.lon); tz = parseFloat(p.tz);
+    if (!isFinite(tz)) tz = 9;
+    placeName = `직접 입력 (${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`;
+  } else if (p.place) {
+    const c = CITIES.find(x => x[0] === p.place);
+    if (c) { placeName = c[0]; lat = c[1]; lon = c[2]; tz = 9; }
+  }
+  const canAstro = timeKnown && isFinite(lat) && isFinite(lon);
+  const saju = buildSaju(by, bm, bd, timeKnown, bhh, bmm, lon, tz);
+  const asc = canAstro ? ascendant(by, bm, bd, bhh, bmm, lat, lon, tz) : null;
+  const elRel = REL_EL_TEXT[((dayP.el - saju.dayEl) % 5 + 5) % 5];
+  const seedW = `${dateKey}|W|${sign[0]}|${asc ? asc.sign[0] : "NA"}|${nameVal}`;
+  const seedE = `${dateKey}|E|${animal.name}|${saju.day.stem}|${saju.hour ? saju.hour.branch : "NA"}|${nameVal}`;
+  const seedT = `${dateKey}|T|${sign[0]}|${animal.name}|${asc ? asc.sign[0] : "NA"}|${saju.day.stem}|${nameVal}`;
+  const fW = genFortune(seedW, 30);
+  const fE = genFortune(seedE, 30);
+  const advice = pickFrom(makeRng("advice" + seedW), ADVICE);
+  const rel = relation(animal.idx, dayP.b);
+  const tarot = drawTarot(seedT);
+  const flipKey = `${dateKey}|${p.id}`;
+
+  $("#greetWho").textContent = `${nameVal}님, 오늘의 운세예요 🌟`;
+  $("#greetChips").innerHTML =
+    `<span class="badge">${sign[1]} ${sign[0]}자리</span><span class="badge">${animal.emoji} ${animal.name}띠</span>` +
+    (asc ? `<span class="badge">⬆ ${asc.sign[1]} ${asc.sign[0]}</span>` : "") +
+    `<span class="badge">📍 ${esc(placeName)}</span>` +
+    (timeKnown ? `<span class="badge">⏰ ${esc(p.time)}</span>` : "");
+
+  renderPeople();
+  renderWest(sign, fW, asc, advice);
+  renderEast(animal, fE, rel, saju, elRel);
+  renderTarot(tarot, nameVal, flipKey);
+  $("#copyBox").hidden = true;
+
+  last = { nameVal, sign, animal, asc, fW, fE, rel, saju, tarot, flipKey };
+
+  $("#setup").classList.add("hidden");
+  $("#result").classList.remove("hidden");
+}
+
+/* ============ 운세 복사 ============ */
+function buildCopyText() {
+  const L = last;
+  const w = L.fW, e = L.fE;
+  const lines = [
+    `[오늘, 운(運)] ${ty}년 ${tm}월 ${td}일 (${weekKor[today.getDay()]})`,
+    `${L.nameVal}님의 오늘 운세`,
+    ``,
+    `⭐ 서양 별자리 · ${L.sign[0]}자리${L.asc ? ` (상승궁 ${L.asc.sign[0]}자리)` : ""}`,
+    `총운 ${w.scores.total} · 애정 ${w.scores.love} · 재물 ${w.scores.money} · 건강 ${w.scores.health}`,
+    `${w.text.total}`,
+    `행운의 색 ${w.color[0]} · 행운의 숫자 ${w.num} · 행운의 아이템 ${w.item}`,
+    ``,
+    `🐉 동양 띠별 · ${L.animal.name}띠 (오늘 일진과 ${L.rel})`,
+    `총운 ${e.scores.total} · 애정 ${e.scores.love} · 재물 ${e.scores.money} · 건강 ${e.scores.health}`,
+    `${e.text.total}`,
+    `길방 ${e.dir}쪽 · 개운 행동: ${e.action}`
+  ];
+  if (flips[L.flipKey]) {
+    const t = L.tarot;
+    lines.push(``, `🔮 오늘의 타로 · ${t.card[0]} (${t.reversed ? "역방향" : "정방향"})`, t.reversed ? t.card[4] : t.card[3]);
+  }
+  lines.push(``, `오늘의 행운 번호: ${w.lotto.join(", ")}`);
+  return lines.join("\n");
+}
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+}
+function copyFortune() {
+  if (!last) return;
+  const text = buildCopyText();
+  const fallback = () => {
+    const box = $("#copyBox");
+    box.value = text; box.hidden = false; box.focus(); box.select();
+    toast("아래 글을 길게 눌러 복사하세요");
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => toast("운세를 복사했어요"), fallback);
+  } else fallback();
+}
+
+/* ============ 입력 화면 ============ */
+function showErr(msg, field) {
+  const box = $("#formErr");
+  document.querySelectorAll("#form [aria-invalid]").forEach(el => el.removeAttribute("aria-invalid"));
+  if (!msg) { box.hidden = true; return; }
+  box.textContent = msg; box.hidden = false;
+  if (field) { field.setAttribute("aria-invalid", "true"); field.focus(); }
+}
+function fillForm(p) {
+  $("#name").value = p ? p.name || "" : "";
+  $("#birth").value = p ? p.birth : "";
+  const place = p && p.place ? p.place : "서울";
+  $("#place").value = (place === "custom" || CITIES.some(c => c[0] === place)) ? place : "서울";
+  $("#customBox").classList.toggle("hidden", $("#place").value !== "custom");
+  $("#lat").value = p && p.lat != null ? p.lat : "";
+  $("#lon").value = p && p.lon != null ? p.lon : "";
+  $("#tz").value = p && p.tz != null ? String(p.tz) : "9";
+  const known = p ? !!(p.timeKnown && p.time) : true;
+  $("#btime").value = known && p ? p.time : "";
+  $("#timeUnknown").checked = !!p && !known;
+  $("#btime").disabled = !!p && !known;
+}
+function openSetup(p) {
+  editingId = p ? p.id : null;
+  fillForm(p);
+  showErr("");
+  $("#setupTitle").textContent = p ? `✏️ ${p.name}님 정보 수정` : (profiles.length ? "✨ 새로운 사람 추가" : "✨ 나의 정보");
+  $("#goBtn").textContent = p ? "저장하고 운세 보기" : "운세 보기";
+  $("#cancelBtn").hidden = !profiles.length;
+  renderDel();
+  $("#result").classList.add("hidden");
+  $("#setup").classList.remove("hidden");
+  $("#setup").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function renderDel(confirming) {
+  const area = $("#delArea");
+  if (!editingId) { area.innerHTML = ""; return; }
+  area.innerHTML = confirming
+    ? `<span class="confirm">이 사람을 목록에서 지울까요?
+        <button class="btn-sub danger" type="button" id="delYes">지우기</button>
+        <button class="btn-sub" type="button" id="delNo">취소</button></span>`
+    : `<button class="btn-sub danger" type="button" id="delBtn">이 사람 삭제</button>`;
+}
+function saveProfiles() { write("fortune_profiles", profiles); }
+
+(function initInputs() {
+  const ps = $("#place");
+  CITIES.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c[1] === "custom" ? "custom" : c[0];
+    opt.textContent = c[0];
+    ps.appendChild(opt);
+  });
+  ps.addEventListener("change", () => $("#customBox").classList.toggle("hidden", ps.value !== "custom"));
+  const tzSel = $("#tz");
+  TZS.forEach(([label, val]) => {
+    const opt = document.createElement("option");
+    opt.value = val; opt.textContent = label;
+    tzSel.appendChild(opt);
+  });
+  tzSel.value = "9";
+  $("#timeUnknown").addEventListener("change", () => {
+    const unknown = $("#timeUnknown").checked;
+    $("#btime").disabled = unknown;
+    if (unknown) $("#btime").value = "";
+  });
+})();
+
+$("#form").addEventListener("submit", ev => {
+  ev.preventDefault();
+  const name = $("#name").value.trim();
+  const birth = $("#birth").value;
+  if (!name) return showErr("이름을 입력해 주세요. 여러 사람을 구분하는 데 쓰여요.", $("#name"));
+  if (!birth) return showErr("생년월일을 선택해 주세요.", $("#birth"));
+  const timeKnown = !$("#timeUnknown").checked && !!$("#btime").value;
+  if (!$("#timeUnknown").checked && !$("#btime").value)
+    return showErr("태어난 시간을 입력하거나 '시간을 몰라요'에 체크해 주세요.", $("#btime"));
+  const place = $("#place").value;
+  const p = { id: editingId || ("p" + Date.now().toString(36)), name, birth, timeKnown, time: timeKnown ? $("#btime").value : null, place };
+  if (place === "custom") {
+    const lat = parseFloat($("#lat").value), lon = parseFloat($("#lon").value);
+    if (!isFinite(lat) || lat < -90 || lat > 90) return showErr("위도를 -90에서 90 사이 숫자로 입력해 주세요.", $("#lat"));
+    if (!isFinite(lon) || lon < -180 || lon > 180) return showErr("경도를 -180에서 180 사이 숫자로 입력해 주세요.", $("#lon"));
+    const tz = parseFloat($("#tz").value);
+    p.lat = lat; p.lon = lon; p.tz = isFinite(tz) ? tz : 9;
+  }
+  showErr("");
+  const i = profiles.findIndex(x => x.id === p.id);
+  if (i >= 0) profiles[i] = p; else profiles.push(p);
+  saveProfiles();
+  renderAll(p);
+  $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("#cancelBtn").addEventListener("click", () => {
+  const p = profiles.find(x => x.id === activeId) || profiles[0];
+  if (p) renderAll(p);
+});
+$("#delArea").addEventListener("click", e => {
+  const id = e.target.id;
+  if (id === "delBtn") renderDel(true);
+  else if (id === "delNo") renderDel(false);
+  else if (id === "delYes") {
+    profiles = profiles.filter(x => x.id !== editingId);
+    saveProfiles();
+    toast("목록에서 지웠어요");
+    if (profiles.length) renderAll(profiles[0]);
+    else { activeId = null; write("fortune_active", null); openSetup(null); }
+  }
+});
+$("#people").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.id === "addPerson") return openSetup(null);
+  const p = profiles.find(x => x.id === b.dataset.id);
+  if (p && p.id !== activeId) renderAll(p);
+});
+$("#editBtn").addEventListener("click", () => {
+  const p = profiles.find(x => x.id === activeId);
+  if (p) openSetup(p);
+});
+$("#copyBtn").addEventListener("click", copyFortune);
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", "false"));
+    document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+    t.setAttribute("aria-selected", "true");
+    $("#panel-" + t.dataset.tab).classList.add("active");
+  });
+});
+
+function makeStars() {
+  const box = $("#stars");
+  let html = "";
+  for (let i = 0; i < 110; i++) {
+    const size = (Math.random() * 2 + 1).toFixed(1);
+    const dur = (Math.random() * 3 + 2).toFixed(1);
+    html += `<span style="left:${(Math.random() * 100).toFixed(2)}%;top:${(Math.random() * 100).toFixed(2)}%;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${(Math.random() * 4).toFixed(1)}s"></span>`;
+  }
+  box.innerHTML = html;
+}
+
+/* ============ 시작 ============ */
+$("#dateLine").innerHTML =
+  `<span>${ty}년 ${tm}월 ${td}일 (${weekKor[today.getDay()]})</span>` +
+  `<span class="badge">${yearP.ko}년</span><span class="badge">${dayP.stem}${dayP.branch}일 (${dayP.han})</span>`;
+makeStars();
+
+profiles = read("fortune_profiles", null);
+if (!Array.isArray(profiles)) {
+  // 예전 버전(한 사람만 저장)에서 옮겨오기
+  profiles = [];
+  const old = read("fortune_profile", null);
+  if (old && old.birth) { old.id = "p" + Date.now().toString(36); old.name = (old.name || "").trim() || "나"; profiles.push(old); saveProfiles(); }
+}
+profiles = profiles.filter(p => p && p.id && p.birth && p.name);
+const startP = profiles.find(p => p.id === read("fortune_active", null)) || profiles[0];
+if (startP) renderAll(startP);
+else openSetup(null);
+</script>
+
+</body>
+</html>
